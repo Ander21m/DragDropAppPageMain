@@ -1,6 +1,8 @@
 import 'dart:convert';
 
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:dio/dio.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:imagedragdrop2/Info/api.dart';
 import 'package:imagedragdrop2/Utility/Utility.dart';
@@ -27,6 +29,8 @@ class _DragdropPageState extends State<DragdropPage> {
   final DateFormat _format = DateFormat("dd MMM, yyyy");
   final DateFormat _monthFormat = DateFormat.E();
   Map<String, Object?> dateToImageMap = {};
+
+  final user = FirebaseAuth.instance.currentUser;
 
   List<String> testImageUrls = [
     'https://img.bleacherreport.net/img/images/photos/003/882/208/hi-res-67ba2cd4215bff0d322be08e173488e7_crop_north.jpg?1598817098&w=3072&h=2048',
@@ -110,289 +114,299 @@ class _DragdropPageState extends State<DragdropPage> {
   @override
   Widget build(BuildContext context) {
     final weekDates = getCurrentWeekDates(_selectedDateString!);
-    return SafeArea(
-        child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 8),
-          child: Column(
-            children: [
-              Row(
+    return StreamBuilder(
+      stream: FirebaseFirestore.instance.collection("Users").doc(user!.email).snapshots(),
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+            return Center(child: CircularProgressIndicator());
+          }
+
+
+        return SafeArea(
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 8),
+              child: Column(
                 children: [
-                  const CircleAvatar(
-                    radius: 42,
-                    backgroundImage: NetworkImage(
-                        "https://cdn.britannica.com/92/163892-050-420A2632/Andres-Iniesta-Spanish.jpg"),
-                  ),
-                  const SizedBox(width: 12),
-                   Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
+                  Row(
                     children: [
-                      const Text(
-                        'Good Morning James',
-                        style: TextStyle(
-                            fontSize: 16, fontWeight: FontWeight.w900),
+                      const CircleAvatar(
+                        radius: 42,
+                        backgroundImage: NetworkImage(
+                            "https://cdn.britannica.com/92/163892-050-420A2632/Andres-Iniesta-Spanish.jpg"),
                       ),
-                      Text('Today weather is ${getTypeForWeather(_temp)}',
-                          style: const TextStyle(
-                              fontSize: 16,
-                              color: Color.fromARGB(255, 124, 124, 124))),
-                    ],
-                  ),
-                  const Spacer(),
-                  Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                       Text('${_temp.toStringAsFixed(0)}°',
-                          style: const TextStyle(
-                              fontSize: 16,
-                              color: Color.fromARGB(255, 124, 124, 124))),
-                      Image.asset(
-                        getImageForWeather(_weather),
-                        width: 35,
-                        height: 35,
-                      )
-                    ],
-                  ),
-                  const SizedBox(width: 10),
-                ],
-              ),
-              const SizedBox(
-                height: 15,
-              ),
-              //Whole Box Container
-              Container(
-                decoration: BoxDecoration(
-                  color: const Color.fromARGB(
-                      195, 178, 131, 146), // Background color
-                  borderRadius: BorderRadius.circular(20), // Rounded corners
-                ),
-                child: Column(
-                  children: [
-                    //Top Part
-                    Container(
-                      padding: const EdgeInsets.fromLTRB(20, 15, 20, 10),
-                      child: Column(
+                      const SizedBox(width: 12),
+                       Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Row(
-                            children: [
-                              const Icon(Icons.calendar_month_outlined),
-                              const SizedBox(
-                                width: 5,
-                              ),
-                              GestureDetector(
-                                onTap: _pickDate,
-                                child: Row(
-                                  children: [
-                                    Text(
-                                      _format.format(_selectedDateString!),
-                                      style: const TextStyle(
-                                          fontSize: 16,
-                                          fontWeight: FontWeight.w500),
-                                    ),
-                                    const SizedBox(
-                                      width: 5,
-                                    ),
-                                    const Icon(Icons.arrow_drop_down)
-                                  ],
-                                ),
-                              ),
-                              const Spacer(),
-                              const Text("Weekly",
-                                  style: TextStyle(
-                                      fontSize: 16,
-                                      fontWeight: FontWeight.w500)),
-                              const SizedBox(
-                                width: 5,
-                              ),
-                              const Icon(Icons.menu)
-                            ],
+                           Text(
+                            'Good Morning ${snapshot.data!.get('Nickname')}',
+                            style: const TextStyle(
+                                fontSize: 16, fontWeight: FontWeight.w900),
                           ),
-                          const SizedBox(height: 12),
-                          Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                              children: weekDates.map((date) {
-                                bool isSelected = date.year ==
-                                        _selectedDateString!.year &&
-                                    date.month == _selectedDateString!.month &&
-                                    date.day == _selectedDateString!.day;
-
-                                return Column(
-                                  children: [
-                                    Text(_monthFormat
-                                        .format(date)
-                                        .substring(0, 1)),
-                                    const SizedBox(height: 4),
-                                    Container(
-                                        margin:
-                                            const EdgeInsets.symmetric(horizontal: 2),
-                                        width: 40,
-                                        height: 72,
-                                        decoration: BoxDecoration(
-                                            borderRadius:
-                                                BorderRadius.circular(30),
-                                            color: Colors.white,
-                                            boxShadow: isSelected
-                                                ? [
-                                                    const BoxShadow(
-                                                      color: Color.fromARGB(
-                                                          255, 234, 45, 45),
-                                                      blurRadius: 4,
-                                                      offset: Offset(0, 1),
-                                                    )
-                                                  ]
-                                                : null),
-                                        child: Column(
-                                          children: [
-                                            const SizedBox(
-                                              height: 8,
-                                            ),
-                                            Text(
-                                              "${date.day}",
-                                              style: const TextStyle(
-                                                  fontWeight: FontWeight.w600),
-                                            ),
-                                            const SizedBox(
-                                              height: 5,
-                                            ),
-                                            DragTarget(
-                                                onAcceptWithDetails: (details) {
-                                              setState(() {
-                                                dateToImageMap[
-                                                        _format.format(date)] =
-                                                    details.data;
-                                              });
-                                            }, builder: (context, candidateData,
-                                                    rejectedData) {
-
-                                              final dateKey = _format.format(date);
-                                              return CircleAvatar(
-                                                radius: 16,
-                                                backgroundColor: const Color.fromARGB(
-                                                    255, 89, 88, 88),
-                                                    backgroundImage: dateToImageMap[dateKey] !=
-                                                        null
-                                                    ? NetworkImage(dateToImageMap[dateKey].toString()):null,
-                                                child: dateToImageMap[dateKey] !=
-                                                        null
-                                                    ? null
-                                                    : const Icon(Icons.image,
-                                                        color: Color.fromARGB(
-                                                            202,
-                                                            207,
-                                                            205,
-                                                            205)),
-                                              );
-                                            }),
-                                          ],
-                                        )),
-                                  ],
-                                );
-                              }).toList()),
+                          Text('Today weather is ${getTypeForWeather(_temp)}',
+                              style: const TextStyle(
+                                  fontSize: 16,
+                                  color: Color.fromARGB(255, 124, 124, 124))),
                         ],
                       ),
+                      const Spacer(),
+                      Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                           Text('${_temp.toStringAsFixed(0)}°',
+                              style: const TextStyle(
+                                  fontSize: 16,
+                                  color: Color.fromARGB(255, 124, 124, 124))),
+                          Image.asset(
+                            getImageForWeather(_weather),
+                            width: 35,
+                            height: 35,
+                          )
+                        ],
+                      ),
+                      const SizedBox(width: 10),
+                    ],
+                  ),
+                  const SizedBox(
+                    height: 15,
+                  ),
+                  //Whole Box Container
+                  Container(
+                    decoration: BoxDecoration(
+                      color: const Color.fromARGB(
+                          195, 178, 131, 146), // Background color
+                      borderRadius: BorderRadius.circular(20), // Rounded corners
                     ),
-
-                    /// Bottom Text
-                    Container(
-                      decoration: BoxDecoration(
-                          borderRadius: const BorderRadius.vertical(
-                              bottom: Radius.circular(20)),
-                          color: const Color.fromARGB(232, 190, 136, 153)
-                              .withOpacity(0.8)),
-                      child: const Padding(
-                        padding:
-                            EdgeInsets.symmetric(vertical: 5, horizontal: 15),
-                        child: Row(
-                          children: [
-                            Icon(Icons.ads_click),
-                            Expanded(
-                              child: Center(
-                                child: Text(
-                                  "Drag and drop multiple outfit to the specific date",
-                                  style: TextStyle(color: Colors.black54),
+                    child: Column(
+                      children: [
+                        //Top Part
+                        Container(
+                          padding: const EdgeInsets.fromLTRB(20, 15, 20, 10),
+                          child: Column(
+                            children: [
+                              Row(
+                                children: [
+                                  const Icon(Icons.calendar_month_outlined),
+                                  const SizedBox(
+                                    width: 5,
+                                  ),
+                                  GestureDetector(
+                                    onTap: _pickDate,
+                                    child: Row(
+                                      children: [
+                                        Text(
+                                          _format.format(_selectedDateString!),
+                                          style: const TextStyle(
+                                              fontSize: 16,
+                                              fontWeight: FontWeight.w500),
+                                        ),
+                                        const SizedBox(
+                                          width: 5,
+                                        ),
+                                        const Icon(Icons.arrow_drop_down)
+                                      ],
+                                    ),
+                                  ),
+                                  const Spacer(),
+                                  const Text("Weekly",
+                                      style: TextStyle(
+                                          fontSize: 16,
+                                          fontWeight: FontWeight.w500)),
+                                  const SizedBox(
+                                    width: 5,
+                                  ),
+                                  const Icon(Icons.menu)
+                                ],
+                              ),
+                              const SizedBox(height: 12),
+                              Row(
+                                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                                  children: weekDates.map((date) {
+                                    bool isSelected = date.year ==
+                                            _selectedDateString!.year &&
+                                        date.month == _selectedDateString!.month &&
+                                        date.day == _selectedDateString!.day;
+        
+                                    return Column(
+                                      children: [
+                                        Text(_monthFormat
+                                            .format(date)
+                                            .substring(0, 1)),
+                                        const SizedBox(height: 4),
+                                        Container(
+                                            margin:
+                                                const EdgeInsets.symmetric(horizontal: 2),
+                                            width: 40,
+                                            height: 72,
+                                            decoration: BoxDecoration(
+                                                borderRadius:
+                                                    BorderRadius.circular(30),
+                                                color: Colors.white,
+                                                boxShadow: isSelected
+                                                    ? [
+                                                        const BoxShadow(
+                                                          color: Color.fromARGB(
+                                                              255, 234, 45, 45),
+                                                          blurRadius: 4,
+                                                          offset: Offset(0, 1),
+                                                        )
+                                                      ]
+                                                    : null),
+                                            child: Column(
+                                              children: [
+                                                const SizedBox(
+                                                  height: 8,
+                                                ),
+                                                Text(
+                                                  "${date.day}",
+                                                  style: const TextStyle(
+                                                      fontWeight: FontWeight.w600),
+                                                ),
+                                                const SizedBox(
+                                                  height: 5,
+                                                ),
+                                                DragTarget(
+                                                    onAcceptWithDetails: (details) {
+                                                  setState(() {
+                                                    dateToImageMap[
+                                                            _format.format(date)] =
+                                                        details.data;
+                                                  });
+                                                }, builder: (context, candidateData,
+                                                        rejectedData) {
+        
+                                                  final dateKey = _format.format(date);
+                                                  return CircleAvatar(
+                                                    radius: 16,
+                                                    backgroundColor: const Color.fromARGB(
+                                                        255, 89, 88, 88),
+                                                        backgroundImage: dateToImageMap[dateKey] !=
+                                                            null
+                                                        ? NetworkImage(dateToImageMap[dateKey].toString()):null,
+                                                    child: dateToImageMap[dateKey] !=
+                                                            null
+                                                        ? null
+                                                        : const Icon(Icons.image,
+                                                            color: Color.fromARGB(
+                                                                202,
+                                                                207,
+                                                                205,
+                                                                205)),
+                                                  );
+                                                }),
+                                              ],
+                                            )),
+                                      ],
+                                    );
+                                  }).toList()),
+                            ],
+                          ),
+                        ),
+        
+                        /// Bottom Text
+                        Container(
+                          decoration: BoxDecoration(
+                              borderRadius: const BorderRadius.vertical(
+                                  bottom: Radius.circular(20)),
+                              color: const Color.fromARGB(232, 190, 136, 153)
+                                  .withOpacity(0.8)),
+                          child: const Padding(
+                            padding:
+                                EdgeInsets.symmetric(vertical: 5, horizontal: 15),
+                            child: Row(
+                              children: [
+                                Icon(Icons.ads_click),
+                                Expanded(
+                                  child: Center(
+                                    child: Text(
+                                      "Drag and drop multiple outfit to the specific date",
+                                      style: TextStyle(color: Colors.black54),
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        )
+                      ],
+                    ),
+                  ),
+        
+                  //Drap Image Section
+                  Row(
+                    children: [
+                      const Text(
+                        "Gallery",
+                        style: TextStyle(fontWeight: FontWeight.w900, fontSize: 18),
+                      ),
+                      const Spacer(),
+                      IconButton(
+                          onPressed: () {}, icon: const Icon(Icons.upload_rounded)),
+                      DropdownButton<String>(
+                          value: _selectedGalleryType,
+                          items: _galleryTypes
+                              .map((item) => DropdownMenuItem(
+                                    value: item,
+                                    child: Text(item),
+                                  ))
+                              .toList(),
+                          onChanged: (String? value) {
+                            setState(() {
+                              _selectedGalleryType = value;
+                            });
+                          })
+                    ],
+                  ),
+        
+                  //Images
+                  Expanded(
+                    child: GridView.builder(
+                        padding: const EdgeInsets.fromLTRB(0, 0, 0, 10),
+                        itemCount: testImageUrls.length,
+                        gridDelegate:
+                            const SliverGridDelegateWithFixedCrossAxisCount(
+                                crossAxisCount: 3,
+                                crossAxisSpacing: 12,
+                                mainAxisSpacing: 12,
+                                childAspectRatio: 1),
+                        itemBuilder: (context, index) {
+                          final img = testImageUrls[index];
+                          return Draggable(
+                              data: img,
+                              feedback: Opacity(
+                                opacity: 0.7,
+                                child: ClipRRect(
+                                  borderRadius: BorderRadius.circular(8),
+                                  child: Image.network(
+                                    img,
+                                    fit: BoxFit.cover,
+                                    height: 100,
+                                    width: 100,
+                                  ),
                                 ),
                               ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    )
-                  ],
-                ),
-              ),
-
-              //Drap Image Section
-              Row(
-                children: [
-                  const Text(
-                    "Gallery",
-                    style: TextStyle(fontWeight: FontWeight.w900, fontSize: 18),
+                              childWhenDragging: Container(
+                                decoration: BoxDecoration(
+                                    color: const Color.fromARGB(163, 158, 158, 158),
+                                    borderRadius: BorderRadius.circular(8)),
+                              ),
+                              child: ClipRRect(
+                                borderRadius: BorderRadius.circular(8),
+                                child: Image.network(
+                                  img,
+                                  fit: BoxFit.cover,
+                                ),
+                              ));
+                        }),
                   ),
-                  const Spacer(),
-                  IconButton(
-                      onPressed: () {}, icon: const Icon(Icons.upload_rounded)),
-                  DropdownButton<String>(
-                      value: _selectedGalleryType,
-                      items: _galleryTypes
-                          .map((item) => DropdownMenuItem(
-                                value: item,
-                                child: Text(item),
-                              ))
-                          .toList(),
-                      onChanged: (String? value) {
-                        setState(() {
-                          _selectedGalleryType = value;
-                        });
-                      })
                 ],
               ),
-
-              //Images
-              Expanded(
-                child: GridView.builder(
-                    padding: const EdgeInsets.fromLTRB(0, 0, 0, 10),
-                    itemCount: testImageUrls.length,
-                    gridDelegate:
-                        const SliverGridDelegateWithFixedCrossAxisCount(
-                            crossAxisCount: 3,
-                            crossAxisSpacing: 12,
-                            mainAxisSpacing: 12,
-                            childAspectRatio: 1),
-                    itemBuilder: (context, index) {
-                      final img = testImageUrls[index];
-                      return Draggable(
-                          data: img,
-                          feedback: Opacity(
-                            opacity: 0.7,
-                            child: ClipRRect(
-                              borderRadius: BorderRadius.circular(8),
-                              child: Image.network(
-                                img,
-                                fit: BoxFit.cover,
-                                height: 100,
-                                width: 100,
-                              ),
-                            ),
-                          ),
-                          childWhenDragging: Container(
-                            decoration: BoxDecoration(
-                                color: const Color.fromARGB(163, 158, 158, 158),
-                                borderRadius: BorderRadius.circular(8)),
-                          ),
-                          child: ClipRRect(
-                            borderRadius: BorderRadius.circular(8),
-                            child: Image.network(
-                              img,
-                              fit: BoxFit.cover,
-                            ),
-                          ));
-                    }),
-              ),
-            ],
-          ),
-        ),
-      
-
-      
+            ),
+          
+        
+          
+        );
+      }
     );
   }
 }

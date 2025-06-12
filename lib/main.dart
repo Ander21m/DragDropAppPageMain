@@ -1,4 +1,7 @@
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
+import 'package:imagedragdrop2/Info/fbinfo.dart';
 import 'package:imagedragdrop2/Pages/dargdropPage.dart';
 import 'package:imagedragdrop2/Pages/explore.dart';
 import 'package:imagedragdrop2/Pages/wardrobepage.dart';
@@ -6,7 +9,10 @@ import 'package:imagedragdrop2/Pages/profilepage.dart';
 import 'package:imagedragdrop2/Pages/tryonpage.dart';
 import 'package:imagedragdrop2/firstscreen.dart';
 
-void main() {
+void main() async{
+  WidgetsFlutterBinding.ensureInitialized();
+
+  await Firebase.initializeApp(options: FirebaseOptions(apiKey: Info.instance.apiHere(), appId: Info.instance.appIDHere(), messagingSenderId: Info.instance.projectNumberHere(), projectId: Info.instance.projectIdHere()));
   runApp(const MyApp());
 }
 
@@ -56,7 +62,11 @@ class MyHomePage extends StatefulWidget {
 }
 
 class _MyHomePageState extends State<MyHomePage> {
+
+  FirebaseAuth instance = FirebaseAuth.instance;
   int _pageIndex = 0;
+
+  
 
   List<Widget> pageWidgets = [
     const DragdropPage(),
@@ -74,12 +84,30 @@ class _MyHomePageState extends State<MyHomePage> {
     });
   }
 
+
+  PreferredSizeWidget? getCurrentAppBar(int pageIndex){
+  switch (pageIndex) {
+    case 4:
+      return AppBar(title: Text('Profile'),backgroundColor: Color.fromARGB(255, 137, 87, 103),actions: [IconButton(onPressed: LogOut, icon: Icon(Icons.logout))],);
+    
+    default:
+      return null;
+  }
+}
+  Future<void> LogOut() async {
+      await instance.signOut();
+
+  }
+
+  
+  
+
   @override
   Widget build(BuildContext context) {
     GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey();
     return Scaffold(
       key: _scaffoldKey,
-      
+      appBar: getCurrentAppBar(_pageIndex),
       body: Container(
         child: pageWidgets[_pageIndex],
       ),
@@ -125,3 +153,6 @@ class _MyHomePageState extends State<MyHomePage> {
     );
   }
 }
+
+
+
