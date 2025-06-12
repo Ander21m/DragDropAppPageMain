@@ -1,16 +1,26 @@
+import 'dart:convert';
+
+import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
+import 'package:imagedragdrop2/Info/api.dart';
+import 'package:imagedragdrop2/Utility/Utility.dart';
 import 'package:intl/intl.dart';
 
-class Dragdrop extends StatefulWidget {
-  const Dragdrop({super.key});
+class DragdropPage extends StatefulWidget {
+  const DragdropPage({super.key});
 
   @override
-  State<Dragdrop> createState() => _DragdropState();
+  State<DragdropPage> createState() => _DragdropPageState();
 }
 
-class _DragdropState extends State<Dragdrop> {
+class _DragdropPageState extends State<DragdropPage> {
+
+  final String _cityname = "Bangkok";
+  String _weather ="";
+  double _temp = 0;
   DateTime? _selectedDateString;
   String? _selectedGalleryType;
+
 
   final List<String> _galleryTypes = ["Recent", "Favorites"];
 
@@ -58,6 +68,7 @@ class _DragdropState extends State<Dragdrop> {
     }
   }
 
+
   DateTime getStartOfWeek(DateTime date) =>
       date.subtract(Duration(days: date.weekday % 7));
 
@@ -66,19 +77,40 @@ class _DragdropState extends State<Dragdrop> {
     return List.generate(7, (i) => startOfWeek.add(Duration(days: i)));
   }
 
+ 
+
+
+  Future<void> getWeatherDetails() async {
+    String url = "https://api.openweathermap.org/data/2.5/weather?q=$_cityname&appid=${getWeatherApiHere()}";
+    try {
+      Response response = await Dio().get(url);
+      Map<String, dynamic> result = json.decode(response.toString());
+      setState(() {
+        
+        _temp = result["main"]["temp"] - 273.15;
+        _weather = result["weather"][0]["main"];
+        
+      });
+    
+      print(result);
+    } catch (e) {
+      print(e.toString());
+    }
+  }
+
   @override
   void initState() {
     // TODO: implement initState
     super.initState();
     _selectedDateString ??= DateTime.now();
     _selectedGalleryType ??= _galleryTypes[0];
+    getWeatherDetails();
   }
 
   @override
   Widget build(BuildContext context) {
     final weekDates = getCurrentWeekDates(_selectedDateString!);
-    return Scaffold(
-      body: SafeArea(
+    return SafeArea(
         child: Container(
           padding: const EdgeInsets.symmetric(horizontal: 8),
           child: Column(
@@ -91,16 +123,16 @@ class _DragdropState extends State<Dragdrop> {
                         "https://cdn.britannica.com/92/163892-050-420A2632/Andres-Iniesta-Spanish.jpg"),
                   ),
                   const SizedBox(width: 12),
-                  const Column(
+                   Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(
+                      const Text(
                         'Good Morning James',
                         style: TextStyle(
                             fontSize: 16, fontWeight: FontWeight.w900),
                       ),
-                      Text('Today weather is a bit hot',
-                          style: TextStyle(
+                      Text('Today weather is ${getTypeForWeather(_temp)}',
+                          style: const TextStyle(
                               fontSize: 16,
                               color: Color.fromARGB(255, 124, 124, 124))),
                     ],
@@ -109,12 +141,12 @@ class _DragdropState extends State<Dragdrop> {
                   Column(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      const Text('20°',
-                          style: TextStyle(
+                       Text('${_temp.toStringAsFixed(0)}°',
+                          style: const TextStyle(
                               fontSize: 16,
                               color: Color.fromARGB(255, 124, 124, 124))),
-                      Image.network(
-                        "https://th.bing.com/th/id/OIP.hR3QF6CnwZyzaSx7prPCXgHaHa?w=189&h=189&c=7&r=0&o=7&pid=1.7&rm=3",
+                      Image.asset(
+                        getImageForWeather(_weather),
                         width: 35,
                         height: 35,
                       )
@@ -358,7 +390,9 @@ class _DragdropState extends State<Dragdrop> {
             ],
           ),
         ),
-      ),
+      
+
+      
     );
   }
 }

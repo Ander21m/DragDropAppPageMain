@@ -1,5 +1,10 @@
 import 'package:flutter/material.dart';
-import 'package:imagedragdrop2/DragDrop/dargdrop.dart';
+import 'package:imagedragdrop2/Pages/dargdropPage.dart';
+import 'package:imagedragdrop2/Pages/explore.dart';
+import 'package:imagedragdrop2/Pages/wardrobepage.dart';
+import 'package:imagedragdrop2/Pages/profilepage.dart';
+import 'package:imagedragdrop2/Pages/tryonpage.dart';
+import 'package:imagedragdrop2/firstscreen.dart';
 
 void main() {
   runApp(const MyApp());
@@ -34,7 +39,89 @@ class MyApp extends StatelessWidget {
         
         useMaterial3: true,
       ),
-      home: const Dragdrop(),
+      home: const SplashScreen(),
+    );
+  }
+}
+
+
+
+class MyHomePage extends StatefulWidget {
+  const MyHomePage({super.key});
+
+ 
+
+  @override
+  State<MyHomePage> createState() => _MyHomePageState();
+}
+
+class _MyHomePageState extends State<MyHomePage> {
+  int _pageIndex = 0;
+
+  List<Widget> pageWidgets = [
+    const DragdropPage(),
+    const Wardrobepage(),
+    const Tryonpage(),
+    const Explorepage(),
+    const Profilepage()
+    
+    
+  ];
+
+  void onBottomTap(int index) {
+    setState(() {
+      _pageIndex = index;
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey();
+    return Scaffold(
+      key: _scaffoldKey,
+      
+      body: Container(
+        child: pageWidgets[_pageIndex],
+      ),
+      bottomNavigationBar: BottomNavigationBar(
+        type: BottomNavigationBarType.fixed,
+        selectedItemColor: Colors.green,
+        unselectedFontSize: 14,
+        items: const [
+          BottomNavigationBarItem(
+              icon: Icon(
+                Icons.edit_calendar,
+                size: 20,
+              ),
+              label: "Plan"),
+          BottomNavigationBarItem(
+              icon: Icon(
+                Icons.checkroom_rounded,
+                size: 20,
+              ),
+              label: "WarDrobe"),
+          BottomNavigationBarItem(
+              icon: Icon(
+                Icons.change_circle,
+                size: 20,
+              ),
+              label: "Try on"),
+          BottomNavigationBarItem(
+              icon: Icon(
+                Icons.explore,
+                size: 20,
+              ),
+              label: "Explore"),
+            BottomNavigationBarItem(
+              icon: Icon(
+                Icons.person,
+                size: 20,
+              ),
+              label: "Profile"),
+        ],
+        currentIndex: _pageIndex,
+        onTap: onBottomTap,
+      ),
     );
   }
 }
