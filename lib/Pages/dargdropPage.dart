@@ -16,13 +16,11 @@ class DragdropPage extends StatefulWidget {
 }
 
 class _DragdropPageState extends State<DragdropPage> {
-
   final String _cityname = "Bangkok";
-  String _weather ="";
+  String _weather = "";
   double _temp = 0;
   DateTime? _selectedDateString;
   String? _selectedGalleryType;
-
 
   final List<String> _galleryTypes = ["Recent", "Favorites"];
 
@@ -72,7 +70,6 @@ class _DragdropPageState extends State<DragdropPage> {
     }
   }
 
-
   DateTime getStartOfWeek(DateTime date) =>
       date.subtract(Duration(days: date.weekday % 7));
 
@@ -81,21 +78,17 @@ class _DragdropPageState extends State<DragdropPage> {
     return List.generate(7, (i) => startOfWeek.add(Duration(days: i)));
   }
 
- 
-
-
   Future<void> getWeatherDetails() async {
-    String url = "https://api.openweathermap.org/data/2.5/weather?q=$_cityname&appid=${getWeatherApiHere()}";
+    String url =
+        "https://api.openweathermap.org/data/2.5/weather?q=$_cityname&appid=${getWeatherApiHere()}";
     try {
       Response response = await Dio().get(url);
       Map<String, dynamic> result = json.decode(response.toString());
       setState(() {
-        
         _temp = result["main"]["temp"] - 273.15;
         _weather = result["weather"][0]["main"];
-        
       });
-    
+
       print(result);
     } catch (e) {
       print(e.toString());
@@ -115,14 +108,18 @@ class _DragdropPageState extends State<DragdropPage> {
   Widget build(BuildContext context) {
     final weekDates = getCurrentWeekDates(_selectedDateString!);
     return StreamBuilder(
-      stream: FirebaseFirestore.instance.collection("Users").doc(user!.email).snapshots(),
-      builder: (context, snapshot) {
-        if (snapshot.connectionState == ConnectionState.waiting) {
+        stream: FirebaseFirestore.instance
+            .collection("Users")
+            .doc(user!.email)
+            .snapshots(),
+        builder: (context, snapshot) {
+          if (snapshot.connectionState == ConnectionState.waiting) {
             return Center(child: CircularProgressIndicator());
           }
+          final data = snapshot.data!.data() as Map<String, dynamic>;
+          final imageData = data["DropImages"];
 
-
-        return SafeArea(
+          return SafeArea(
             child: Container(
               padding: const EdgeInsets.symmetric(horizontal: 8),
               child: Column(
@@ -135,11 +132,11 @@ class _DragdropPageState extends State<DragdropPage> {
                             "https://cdn.britannica.com/92/163892-050-420A2632/Andres-Iniesta-Spanish.jpg"),
                       ),
                       const SizedBox(width: 12),
-                       Column(
+                      Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                           Text(
-                            'Good Morning ${snapshot.data!.get('Nickname')}',
+                          Text(
+                            'Good Morning ${data['Nickname'] ?? ""}',
                             style: const TextStyle(
                                 fontSize: 16, fontWeight: FontWeight.w900),
                           ),
@@ -153,7 +150,7 @@ class _DragdropPageState extends State<DragdropPage> {
                       Column(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
-                           Text('${_temp.toStringAsFixed(0)}°',
+                          Text('${_temp.toStringAsFixed(0)}°',
                               style: const TextStyle(
                                   fontSize: 16,
                                   color: Color.fromARGB(255, 124, 124, 124))),
@@ -175,7 +172,8 @@ class _DragdropPageState extends State<DragdropPage> {
                     decoration: BoxDecoration(
                       color: const Color.fromARGB(
                           195, 178, 131, 146), // Background color
-                      borderRadius: BorderRadius.circular(20), // Rounded corners
+                      borderRadius:
+                          BorderRadius.circular(20), // Rounded corners
                     ),
                     child: Column(
                       children: [
@@ -220,13 +218,11 @@ class _DragdropPageState extends State<DragdropPage> {
                               ),
                               const SizedBox(height: 12),
                               Row(
-                                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                                  mainAxisAlignment:
+                                      MainAxisAlignment.spaceEvenly,
                                   children: weekDates.map((date) {
-                                    bool isSelected = date.year ==
-                                            _selectedDateString!.year &&
-                                        date.month == _selectedDateString!.month &&
-                                        date.day == _selectedDateString!.day;
-        
+                                    final dateKey = _format.format(date);
+
                                     return Column(
                                       children: [
                                         Text(_monthFormat
@@ -234,15 +230,17 @@ class _DragdropPageState extends State<DragdropPage> {
                                             .substring(0, 1)),
                                         const SizedBox(height: 4),
                                         Container(
-                                            margin:
-                                                const EdgeInsets.symmetric(horizontal: 2),
+                                            margin: const EdgeInsets.symmetric(
+                                                horizontal: 2),
                                             width: 40,
                                             height: 72,
                                             decoration: BoxDecoration(
                                                 borderRadius:
                                                     BorderRadius.circular(30),
                                                 color: Colors.white,
-                                                boxShadow: isSelected
+                                                boxShadow: imageData != null &&
+                                                        imageData.containsKey(
+                                                            dateKey)
                                                     ? [
                                                         const BoxShadow(
                                                           color: Color.fromARGB(
@@ -260,38 +258,53 @@ class _DragdropPageState extends State<DragdropPage> {
                                                 Text(
                                                   "${date.day}",
                                                   style: const TextStyle(
-                                                      fontWeight: FontWeight.w600),
+                                                      fontWeight:
+                                                          FontWeight.w600),
                                                 ),
                                                 const SizedBox(
                                                   height: 5,
                                                 ),
-                                                DragTarget(
-                                                    onAcceptWithDetails: (details) {
+                                                DragTarget(onAcceptWithDetails:
+                                                    (details) {
                                                   setState(() {
-                                                    dateToImageMap[
-                                                            _format.format(date)] =
-                                                        details.data;
+                                                    FirebaseFirestore.instance
+                                                        .collection("Users")
+                                                        .doc(user!.email)
+                                                        .update({
+                                                      "DropImages.$dateKey":
+                                                          details.data
+                                                              .toString()
+                                                    });
                                                   });
-                                                }, builder: (context, candidateData,
-                                                        rejectedData) {
-        
-                                                  final dateKey = _format.format(date);
+                                                }, builder: (context,
+                                                    candidateData,
+                                                    rejectedData) {
                                                   return CircleAvatar(
                                                     radius: 16,
-                                                    backgroundColor: const Color.fromARGB(
-                                                        255, 89, 88, 88),
-                                                        backgroundImage: dateToImageMap[dateKey] !=
-                                                            null
-                                                        ? NetworkImage(dateToImageMap[dateKey].toString()):null,
-                                                    child: dateToImageMap[dateKey] !=
-                                                            null
+                                                    backgroundColor:
+                                                        const Color.fromARGB(
+                                                            255, 89, 88, 88),
+                                                    backgroundImage: imageData !=
+                                                                null &&
+                                                            imageData
+                                                                .containsKey(
+                                                                    dateKey)
+                                                        ? NetworkImage(
+                                                            imageData[dateKey])
+                                                        : null,
+                                                    child: imageData != null &&
+                                                            imageData
+                                                                .containsKey(
+                                                                    dateKey)
                                                         ? null
-                                                        : const Icon(Icons.image,
-                                                            color: Color.fromARGB(
-                                                                202,
-                                                                207,
-                                                                205,
-                                                                205)),
+                                                        : const Icon(
+                                                            Icons.image,
+                                                            color:
+                                                                Color.fromARGB(
+                                                                    202,
+                                                                    207,
+                                                                    205,
+                                                                    205)),
                                                   );
                                                 }),
                                               ],
@@ -302,7 +315,7 @@ class _DragdropPageState extends State<DragdropPage> {
                             ],
                           ),
                         ),
-        
+
                         /// Bottom Text
                         Container(
                           decoration: BoxDecoration(
@@ -311,8 +324,8 @@ class _DragdropPageState extends State<DragdropPage> {
                               color: const Color.fromARGB(232, 190, 136, 153)
                                   .withOpacity(0.8)),
                           child: const Padding(
-                            padding:
-                                EdgeInsets.symmetric(vertical: 5, horizontal: 15),
+                            padding: EdgeInsets.symmetric(
+                                vertical: 5, horizontal: 15),
                             child: Row(
                               children: [
                                 Icon(Icons.ads_click),
@@ -331,17 +344,19 @@ class _DragdropPageState extends State<DragdropPage> {
                       ],
                     ),
                   ),
-        
+
                   //Drap Image Section
                   Row(
                     children: [
                       const Text(
                         "Gallery",
-                        style: TextStyle(fontWeight: FontWeight.w900, fontSize: 18),
+                        style: TextStyle(
+                            fontWeight: FontWeight.w900, fontSize: 18),
                       ),
                       const Spacer(),
                       IconButton(
-                          onPressed: () {}, icon: const Icon(Icons.upload_rounded)),
+                          onPressed: () {},
+                          icon: const Icon(Icons.upload_rounded)),
                       DropdownButton<String>(
                           value: _selectedGalleryType,
                           items: _galleryTypes
@@ -357,7 +372,7 @@ class _DragdropPageState extends State<DragdropPage> {
                           })
                     ],
                   ),
-        
+
                   //Images
                   Expanded(
                     child: GridView.builder(
@@ -371,6 +386,10 @@ class _DragdropPageState extends State<DragdropPage> {
                                 childAspectRatio: 1),
                         itemBuilder: (context, index) {
                           final img = testImageUrls[index];
+                          bool hasSelected = false;
+                          if (imageData != null) {
+                            hasSelected = imageData.containsValue(img);
+                          }
                           return Draggable(
                               data: img,
                               feedback: Opacity(
@@ -387,26 +406,46 @@ class _DragdropPageState extends State<DragdropPage> {
                               ),
                               childWhenDragging: Container(
                                 decoration: BoxDecoration(
-                                    color: const Color.fromARGB(163, 158, 158, 158),
+                                    color: const Color.fromARGB(
+                                        163, 158, 158, 158),
                                     borderRadius: BorderRadius.circular(8)),
                               ),
-                              child: ClipRRect(
-                                borderRadius: BorderRadius.circular(8),
-                                child: Image.network(
-                                  img,
-                                  fit: BoxFit.cover,
-                                ),
+                              child: Stack(
+                                children: [
+                                  ClipRRect(
+                                    borderRadius: BorderRadius.circular(8),
+                                    child: Image.network(
+                                      img,
+                                      fit: BoxFit.cover,
+                                      width: double.infinity,
+                                      height: double.infinity,
+                                    ),
+                                  ),
+                                  if (hasSelected)
+                                    Positioned(
+                                      top: 4,
+                                      right: 4,
+                                      child: Container(
+                                        decoration: BoxDecoration(
+                                          color: Colors.green,
+                                          shape: BoxShape.circle,
+                                        ),
+                                        
+                                        child: Icon(
+                                          Icons.check,
+                                          color: Colors.white,
+                                          size: 18,
+                                        ),
+                                      ),
+                                    ),
+                                ],
                               ));
                         }),
                   ),
                 ],
               ),
             ),
-          
-        
-          
-        );
-      }
-    );
+          );
+        });
   }
 }
